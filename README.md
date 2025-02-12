@@ -47,6 +47,6 @@ Shadow-TLS 管理菜单
 
 ## 推荐项目
 
-### [SS2022一键部署-由翠花大佬撰写](https://github.com/xOS/Shadowsocks-Rust)
+[SS2022一键部署-由翠花大佬撰写](https://github.com/xOS/Shadowsocks-Rust)
 
-### [Snell一键部署-由jinqians大佬撰写](https://github.com/jinqians/snell.sh)
+[Snell一键部署-由jinqians大佬撰写](https://github.com/jinqians/snell.sh)
