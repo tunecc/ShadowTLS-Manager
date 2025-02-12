@@ -22,7 +22,7 @@ Shadow-TLS 管理菜单
 1、后端服务端口指已部署的SS或Snell等协议的端口
 2、外部监听端口指使用ShadowTLS的端口，默认为443
 
-### 脚本提供了修改ShadowTLS参数的功能，主菜单选择“修改 Shadow-TLS 配置”，会显示菜单：
+### 脚本提供了修改ShadowTLS参数的功能，主菜单选择“修改 Shadow-TLS 配置”，会显示以下菜单，按需修改参数。
 ```
 你要修改什么？
 ==================================
@@ -34,6 +34,8 @@ Shadow-TLS 管理菜单
 ==================================
 (默认：取消):
 ```
+# 参考资料
+
 ## [ShadowTLS原仓库](https://github.com/ihciah/shadow-tls)
 [ShadowTLS的设计细节-由ihciah大佬撰写](https://www.ihcblog.com/a-better-tls-obfs-proxy/)
 
@@ -42,3 +44,9 @@ Shadow-TLS 管理菜单
 
 ## ShadowTLS CPU占用率高解决方法
 参考[原仓库issues](https://github.com/ihciah/shadow-tls/issues/109)
+
+## 推荐项目
+
+### [SS2022一键部署-由翠花大佬撰写](https://github.com/xOS/Shadowsocks-Rust)
+
+### [Snell一键部署-由jinqians大佬撰写](https://github.com/jinqians/snell.sh)
