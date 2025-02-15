@@ -69,18 +69,18 @@ install_tools() {
     print_info "检测到发行版: ${release}"
     case "$release" in
         debian)
-            apt update && apt install -y wget curl openssl jq lsof || { print_error "安装依赖失败"; exit 1; }
+            apt update && apt install -y wget curl openssl jq || { print_error "安装依赖失败"; exit 1; }
             ;;
         centos)
             if command -v dnf >/dev/null 2>&1; then
-                dnf install -y wget curl openssl jq lsof || { print_error "安装依赖失败"; exit 1; }
+                dnf install -y wget curl openssl jq || { print_error "安装依赖失败"; exit 1; }
             else
-                yum install -y wget curl openssl jq lsof || { print_error "安装依赖失败"; exit 1; }
+                yum install -y wget curl openssl jq || { print_error "安装依赖失败"; exit 1; }
             fi
             ;;
         *)
             print_warning "未知发行版，尝试使用 apt 安装..."
-            apt update && apt install -y wget curl openssl jq lsof || { print_error "安装依赖失败"; exit 1; }
+            apt update && apt install -y wget curl openssl jq || { print_error "安装依赖失败"; exit 1; }
             ;;
     esac
 }
@@ -132,7 +132,12 @@ prompt_valid_domain() {
 
 # 检查端口是否被占用
 check_port_in_use() {
-    lsof -i:"$1" >/dev/null 2>&1 && return 0 || return 1
+    # 使用 -ltnH 参数列出所有监听状态的 tcp 套接字（不显示标题），过滤条件为 sport = :$1
+    if [ -n "$(ss -ltnH "sport = :$1")" ]; then
+        return 0  # 端口已被占用
+    else
+        return 1  # 端口未被占用
+    fi
 }
 
 get_latest_version() {
@@ -374,8 +379,10 @@ set_disguise_domain() {
 }
 
 set_external_port() {
+    read_config  # 尝试读取配置文件，如果失败则不影响函数继续执行
+    local current_port="${external_listen_port:-未设置}"
     local new_port
-    read -rp "请输入新的外部监听端口 (当前: $EXT_PORT): " new_port
+    read -rp "请输入新的外部监听端口 (当前: $current_port): " new_port
     if ! [[ "$new_port" =~ ^[0-9]+$ ]] || [ "$new_port" -lt 1 ] || [ "$new_port" -gt 65535 ]; then
         print_error "端口号必须在1到65535之间，且为数字"
         return 1
@@ -390,9 +397,11 @@ set_external_port() {
 }
 
 set_backend_port() {
+    read_config  # 尝试读取配置文件，如果失败则不影响函数继续执行
+    local current_port="${backend_port:-未设置}"
     local new_port
     while true; do
-        read -rp "请输入新的后端服务端口 (当前: $BACKEND_PORT): " new_port
+        read -rp "请输入新的后端服务端口 (当前: $current_port): " new_port
         if ! [[ "$new_port" =~ ^[0-9]+$ ]] || [ "$new_port" -lt 1 ] || [ "$new_port" -gt 65535 ]; then
             print_error "端口号必须在1到65535之间，且为数字"
         else
