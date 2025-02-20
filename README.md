@@ -4,7 +4,7 @@ ShadowTLS管理脚本，支持一键安装、升级和卸载。ShadowTLS需配�
 ## 使用方法
 ### 一键部署命令
 ```bash
-wget -O ShadowTLS_Manager.sh --no-check-certificate https://raw.githubusercontent.com/Kismet0123/ShadowTLS-Manager/refs/heads/main/ShadowTLS_Manager.sh && chmod +x ShadowTLS_Manager.sh && ./ShadowTLS_Manager.sh
+wget -O ShadowTLS_Manager.sh --no-check-certificate https://raw.githubusercontent.com/tunecc/ShadowTLS-Manager/refs/heads/main/ShadowTLS_Manager.sh && chmod +x ShadowTLS_Manager.sh && ./ShadowTLS_Manager.sh
 ```
 ### 操作菜单
 执行命令后，会显示主菜单：
