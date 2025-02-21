@@ -12,11 +12,13 @@ ERROR="${Red_font_prefix}[错误]${RESET}"
 # 配置文件路径
 CONFIG_FILE="/etc/shadowtls/config"
 
-# 全局变量：后端服务端口（适用于SS2022、Trojan、Snell等）
+# 全局变量
 BACKEND_PORT=""
-EXT_PORT=""          # 外部监听端口
-TLS_DOMAIN=""        # 伪装域名
-TLS_PASSWORD=""      # 密码
+EXT_PORT=""
+TLS_DOMAIN=""
+TLS_PASSWORD=""
+WILDCARD_SNI="false"
+FASTOPEN="false"
 
 # ===========================
 # 通用交互提示函数
@@ -28,7 +30,6 @@ prompt_with_default() {
     echo "${input:-$default_value}"
 }
 
-# 打印信息函数
 print_info() {
     echo -e "${Green_font_prefix}[信息]${RESET} $1"
 }
@@ -64,25 +65,40 @@ check_system_type() {
     fi
 }
 
+# 检查并安装依赖工具
 install_tools() {
+    local missing_tools=()
+    for tool in wget curl openssl jq; do
+        if ! command -v "$tool" >/dev/null 2>&1; then
+            missing_tools+=("$tool")
+        fi
+    done
+
+    if [[ ${#missing_tools[@]} -eq 0 ]]; then
+        print_info "所有依赖工具已安装"
+        return 0
+    fi
+
+    print_info "检测到缺少工具: ${missing_tools[*]}，开始安装..."
     check_system_type
     print_info "检测到发行版: ${release}"
     case "$release" in
         debian)
-            apt update && apt install -y wget curl openssl jq || { print_error "安装依赖失败"; exit 1; }
+            apt update && apt install -y "${missing_tools[@]}" || { print_error "安装依赖失败"; exit 1; }
             ;;
         centos)
             if command -v dnf >/dev/null 2>&1; then
-                dnf install -y wget curl openssl jq || { print_error "安装依赖失败"; exit 1; }
+                dnf install -y "${missing_tools[@]}" || { print_error "安装依赖失败"; exit 1; }
             else
-                yum install -y wget curl openssl jq || { print_error "安装依赖失败"; exit 1; }
+                yum install -y "${missing_tools[@]}" || { print_error "安装依赖失败"; exit 1; }
             fi
             ;;
         *)
             print_warning "未知发行版，尝试使用 apt 安装..."
-            apt update && apt install -y wget curl openssl jq || { print_error "安装依赖失败"; exit 1; }
+            apt update && apt install -y "${missing_tools[@]}" || { print_error "安装依赖失败"; exit 1; }
             ;;
     esac
+    print_info "依赖工具安装完成"
 }
 
 # ===========================
@@ -201,11 +217,8 @@ Type=simple
 User=root
 Restart=on-failure
 RestartSec=5s
-Environment=MONOIO_FORCE_LEGACY_DRIVER=1
+#Environment=MONOIO_FORCE_LEGACY_DRIVER=1##CPU100%
 ExecStart=/usr/local/bin/shadow-tls $fastopen_option --v3 --strict server $wildcard_sni_option --listen [::]:${EXT_PORT} --server 127.0.0.1:${BACKEND_PORT} --tls ${TLS_DOMAIN}:443 --password ${TLS_PASSWORD}
-StandardOutput=syslog
-StandardError=syslog
-SyslogIdentifier=shadow-tls
 
 [Install]
 WantedBy=multi-user.target
@@ -228,6 +241,8 @@ write_config() {
         echo "external_listen_port=${EXT_PORT}"
         echo "disguise_domain=${TLS_DOMAIN}"
         echo "backend_port=${BACKEND_PORT}"
+        echo "wildcard_sni=${WILDCARD_SNI}"
+        echo "fastopen=${FASTOPEN}"
     } > "$CONFIG_FILE"
     print_info "配置文件已更新"
 }
@@ -235,6 +250,12 @@ write_config() {
 read_config() {
     if [[ -f "$CONFIG_FILE" ]]; then
         source "$CONFIG_FILE"
+        TLS_PASSWORD="$password"
+        EXT_PORT="$external_listen_port"
+        TLS_DOMAIN="$disguise_domain"
+        BACKEND_PORT="$backend_port"
+        WILDCARD_SNI="${wildcard_sni:-false}"
+        FASTOPEN="${fastopen:-false}"
     else
         print_error "未找到配置文件"
         return 1
@@ -244,7 +265,7 @@ read_config() {
 # ===========================
 # 主操作函数
 install_shadowtls() {
-    # 后端服务端口必须由用户输入，无默认值
+    install_tools
     while true; do
         read -rp "请输入后端服务端口 (适用于 SS2022、Trojan、Snell 等，端口范围为1-65535): " BACKEND_PORT
         if [[ -z "$BACKEND_PORT" ]]; then
@@ -311,6 +332,33 @@ check_service_status() {
     fi
 }
 
+start_service() {
+    if command -v shadow-tls >/dev/null && systemctl is-active --quiet shadow-tls; then
+        print_info "Shadow-TLS 已在运行"
+    else
+        systemctl start shadow-tls
+        sleep 2
+        check_service_status
+    fi
+}
+
+stop_service() {
+    if systemctl is-active --quiet shadow-tls; then
+        systemctl stop shadow-tls
+        sleep 2
+        print_info "Shadow-TLS 已停止"
+    else
+        print_error "Shadow-TLS 未运行"
+    fi
+}
+
+restart_service() {
+    systemctl daemon-reload
+    systemctl restart shadow-tls
+    sleep 2
+    check_service_status
+}
+
 upgrade_shadowtls() {
     local current_version latest_version
     if command -v shadow-tls >/dev/null; then
@@ -337,6 +385,7 @@ upgrade_shadowtls() {
             return
         fi
         
+        install_tools
         print_info "正在升级 Shadow-TLS，从 $current_version 升级到 $latest_version..."
         systemctl stop shadow-tls
         download_shadowtls "true"
@@ -369,6 +418,8 @@ view_config() {
         echo -e "伪装域名：${disguise_domain}"
         echo -e "密码：${password}"
         echo -e "后端服务端口：${backend_port}"
+        echo -e "泛域名 SNI：${wildcard_sni}"
+        echo -e "Fastopen：${fastopen}"
     else
         print_error "未找到 Shadow-TLS 配置信息，请确认已安装 Shadow-TLS"
     fi
@@ -379,14 +430,14 @@ set_disguise_domain() {
     new_domain=$(prompt_valid_domain)
     if [[ -n "$new_domain" ]]; then
         TLS_DOMAIN="$new_domain"
+        return 0
     else
         return 1
     fi
 }
 
 set_external_port() {
-    read_config  # 尝试读取配置文件，如果失败则不影响函数继续执行
-    local current_port="${external_listen_port:-未设置}"
+    local current_port="${EXT_PORT:-未设置}"
     local new_port
     read -rp "请输入新的外部监听端口 (当前: $current_port): " new_port
     if ! [[ "$new_port" =~ ^[0-9]+$ ]] || [ "$new_port" -lt 1 ] || [ "$new_port" -gt 65535 ]; then
@@ -397,14 +448,14 @@ set_external_port() {
         print_error "端口 ${new_port} 已被占用，请更换端口"
         return 1
     fi
-    EXT_PORT="$new_port"  # 更新 EXT_PORT 变量
-    write_config  # 保存新配置到文件中
+    EXT_PORT="$new_port"
+    write_config
     print_info "外部监听端口已更新为: $EXT_PORT"
+    return 0
 }
 
 set_backend_port() {
-    read_config  # 尝试读取配置文件，如果失败则不影响函数继续执行
-    local current_port="${backend_port:-未设置}"
+    local current_port="${BACKEND_PORT:-未设置}"
     local new_port
     while true; do
         read -rp "请输入新的后端服务端口 (当前: $current_port): " new_port
@@ -428,24 +479,33 @@ set_password() {
         echo -e "${Cyan_font_prefix}自动生成的 Shadow-TLS 密码为: ${new_password}${RESET}"
     fi
     TLS_PASSWORD="$new_password"
-}
-
-restart_service() {
-    systemctl daemon-reload
-    systemctl restart shadow-tls
-    check_service_status
+    return 0
 }
 
 update_service_file() {
     SERVICE_FILE="/etc/systemd/system/shadow-tls.service"
     if [[ -f "$SERVICE_FILE" ]]; then
-        local service_content
-        service_content=$(cat "$SERVICE_FILE")
-        service_content=$(echo "$service_content" | sed "s|--listen \[::\]:[0-9]\+|--listen [::]:${EXT_PORT}|")
-        service_content=$(echo "$service_content" | sed "s|--server 127.0.0.1:[0-9]\+|--server 127.0.0.1:${BACKEND_PORT}|")
-        service_content=$(echo "$service_content" | sed "s|--tls [^ ]\+|--tls ${TLS_DOMAIN}:443|")
-        service_content=$(echo "$service_content" | sed "s|--password [^ ]\+|--password ${TLS_PASSWORD}|")
-        echo "$service_content" > "$SERVICE_FILE"
+        local wildcard_sni_option=""
+        local fastopen_option=""
+        [[ "$WILDCARD_SNI" == "true" ]] && wildcard_sni_option="--wildcard-sni=authed "
+        [[ "$FASTOPEN" == "true" ]] && fastopen_option="--fastopen "
+        cat > "$SERVICE_FILE" <<EOF
+[Unit]
+Description=Shadow-TLS Server Service
+After=network-online.target
+Wants=network-online.target systemd-networkd-wait-online.service
+
+[Service]
+LimitNOFILE=32767
+Type=simple
+User=root
+Restart=on-failure
+RestartSec=5s
+ExecStart=/usr/local/bin/shadow-tls $fastopen_option--v3 --strict server $wildcard_sni_option--listen [::]:${EXT_PORT} --server 127.0.0.1:${BACKEND_PORT} --tls ${TLS_DOMAIN}:443 --password ${TLS_PASSWORD}
+
+[Install]
+WantedBy=multi-user.target
+EOF
         print_info "服务单元配置文件已更新。"
     else
         print_error "服务单元配置文件不存在，无法更新。"
@@ -453,8 +513,8 @@ update_service_file() {
 }
 
 set_config() {
-    if read_config; then
-        echo -e "你要修改什么？
+    read_config || print_warning "未找到现有配置，将使用默认值"
+    echo -e "你要修改什么？
 ==================================
  ${Green_font_prefix}1.${RESET}  修改 全部配置
  ${Green_font_prefix}2.${RESET}  修改 伪装域名
@@ -462,51 +522,75 @@ set_config() {
  ${Green_font_prefix}4.${RESET}  修改 后端服务端口
  ${Green_font_prefix}5.${RESET}  修改 外部监听端口
 =================================="
-        read -rp "(默认：取消): " modify
-        [[ -z "${modify}" ]] && { echo "已取消..."; return; }
-        case $modify in
-            1) 
-                set_disguise_domain && set_external_port && set_password && set_backend_port && write_config && update_service_file && systemctl daemon-reload && restart_service || print_error "修改配置失败"
-                ;;
-            2) 
-                set_disguise_domain && write_config && update_service_file && systemctl daemon-reload && restart_service || print_error "修改伪装域名失败"
-                ;;
-            3) 
-                set_password && write_config && update_service_file && systemctl daemon-reload && restart_service || print_error "修改密码失败"
-                ;;
-            4) 
-                set_backend_port && write_config && update_service_file && systemctl daemon-reload && restart_service || print_error "修改后端服务端口失败"
-                ;;
-            5) 
-                set_external_port && write_config && update_service_file && systemctl daemon-reload && restart_service || print_error "修改外部监听端口失败"
-                ;;
-            *) 
-                print_error "请输入正确的数字(1-5)"
-                return
-                ;;
-        esac
-    else
-        print_error "读取配置失败，无法修改配置"
-    fi
+    read -rp "(默认：取消): " modify
+    [[ -z "${modify}" ]] && { echo "已取消..."; return; }
+    case $modify in
+        1) 
+            set_disguise_domain && set_external_port && set_password && set_backend_port && write_config && update_service_file && systemctl daemon-reload && restart_service || print_error "修改配置失败"
+            ;;
+        2) 
+            set_disguise_domain && write_config && update_service_file && systemctl daemon-reload && restart_service || print_error "修改伪装域名失败"
+            ;;
+        3) 
+            set_password && write_config && update_service_file && systemctl daemon-reload && restart_service || print_error "修改密码失败"
+            ;;
+        4) 
+            set_backend_port && write_config && update_service_file && systemctl daemon-reload && restart_service || print_error "修改后端服务端口失败"
+            ;;
+        5) 
+            set_external_port && write_config && update_service_file && systemctl daemon-reload && restart_service || print_error "修改外部监听端口失败"
+            ;;
+        *) 
+            print_error "请输入正确的数字(1-5)"
+            return
+            ;;
+    esac
 }
 
 main_menu() {
     while true; do
-        clear  # 清屏使界面整洁
+        clear
         echo -e "\n${Cyan_font_prefix}Shadow-TLS 管理菜单${RESET}"
+        echo -e "=================================="
+        echo -e " 安装与更新"
+        echo -e "=================================="
         echo -e "${Yellow_font_prefix}1. 安装 Shadow-TLS${RESET}"
         echo -e "${Yellow_font_prefix}2. 升级 Shadow-TLS${RESET}"
         echo -e "${Yellow_font_prefix}3. 卸载 Shadow-TLS${RESET}"
+        echo -e "=================================="
+        echo -e " 配置管理"
+        echo -e "=================================="
         echo -e "${Yellow_font_prefix}4. 查看 Shadow-TLS 配置信息${RESET}"
         echo -e "${Yellow_font_prefix}5. 修改 Shadow-TLS 配置${RESET}"
+        echo -e "=================================="
+        echo -e " 服务控制"
+        echo -e "=================================="
+        echo -e "${Yellow_font_prefix}6. 启动 Shadow-TLS${RESET}"
+        echo -e "${Yellow_font_prefix}7. 停止 Shadow-TLS${RESET}"
+        echo -e "${Yellow_font_prefix}8. 重启 Shadow-TLS${RESET}"
+        echo -e "=================================="
+        echo -e " 退出"
+        echo -e "=================================="
         echo -e "${Yellow_font_prefix}0. 退出${RESET}"
-        read -rp "请选择操作 [0-5]: " choice
+        if [[ -e /usr/local/bin/shadow-tls ]]; then
+            if systemctl is-active --quiet shadow-tls; then
+                echo -e " 当前状态：${Green_font_prefix}已安装并已启动${RESET}"
+            else
+                echo -e " 当前状态：${Green_font_prefix}已安装${RESET} 但 ${Red_font_prefix}未启动${RESET}"
+            fi
+        else
+            echo -e " 当前状态：${Red_font_prefix}未安装${RESET}"
+        fi
+        read -rp "请选择操作 [0-8]: " choice
         case "$choice" in
             1) install_shadowtls ;;
             2) upgrade_shadowtls ;;
             3) uninstall_shadowtls ;;
             4) view_config ;;
             5) set_config ;;
+            6) start_service ;;
+            7) stop_service ;;
+            8) restart_service ;;
             0) exit 0 ;;
             *) print_error "无效的选择" ;;
         esac
@@ -517,5 +601,5 @@ main_menu() {
 
 # 脚本启动
 check_root
-install_tools
+check_system_type
 main_menu
