@@ -196,6 +196,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
+LimitNOFILE=32767
 Type=simple
 User=root
 Restart=on-failure
