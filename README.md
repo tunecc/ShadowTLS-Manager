@@ -3,9 +3,6 @@
 我在LXC的服务器上面使用的时候会出错，在看了[Snell一键部署-由jinqians大佬撰写](https://github.com/jinqians/snell.sh)的脚本后发现是
 ```
 ExecStartPre=/bin/sh -c "ulimit -n 51200"
-
-Wants=network-online.target systemd-networkd-wait-online.service
-后面的systemd-networkd-wait-online.service
 ```
 
 的问题，下面是GPT的回答
@@ -14,9 +11,6 @@ Wants=network-online.target systemd-networkd-wait-online.service
 ExecStartPre=/bin/sh -c "ulimit -n 51200"
 这是在正式启动服务前执行的一个预处理命令。它调用 shell 命令 ulimit 来将当前 shell 的最大文件描述符限制设置为 51200。
 注意：这个设置仅对 ExecStartPre 执行的 shell 及其子进程有效，且如果服务本身并没有继承这个调整的话，实际生效的还是 systemd 的 LimitNOFILE 指定的数值。
-
-当设置了 Wants=network-online.target 之后，系统会尝试让相关服务等待网络连接完全建立后再启动。
-systemd-networkd-wait-online.service 会检测网络设备是否配置完成并能够联通，从而确保依赖网络的服务能够在网络环境稳定时启动。
 
 我不设置这个可以吗？
 
