@@ -201,6 +201,7 @@ Type=simple
 User=root
 Restart=on-failure
 RestartSec=5s
+Environment=MONOIO_FORCE_LEGACY_DRIVER=1
 ExecStart=/usr/local/bin/shadow-tls $fastopen_option --v3 --strict server $wildcard_sni_option --listen [::]:${EXT_PORT} --server 127.0.0.1:${BACKEND_PORT} --tls ${TLS_DOMAIN}:443 --password ${TLS_PASSWORD}
 StandardOutput=syslog
 StandardError=syslog
