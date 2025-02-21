@@ -196,7 +196,7 @@ create_service() {
 Description=Shadow-TLS Server Service
 Documentation=man:sstls-server
 After=network-online.target
-Wants=network-online.target systemd-networkd-wait-online.service
+Wants=network-online.target
 
 [Service]
 Type=simple
@@ -204,6 +204,9 @@ User=root
 Restart=on-failure
 RestartSec=5s
 ExecStart=/usr/local/bin/shadow-tls $fastopen_option--v3 --strict server $wildcard_sni_option--listen [::]:${EXT_PORT} --server 127.0.0.1:${BACKEND_PORT} --tls ${TLS_DOMAIN}:443 --password ${TLS_PASSWORD}
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=shadow-tls
 
 [Install]
 WantedBy=multi-user.target
