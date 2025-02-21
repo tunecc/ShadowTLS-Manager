@@ -194,11 +194,11 @@ create_service() {
     cat > "$SERVICE_FILE" <<EOF
 [Unit]
 Description=Shadow-TLS Server Service
+Documentation=man:sstls-server
 After=network-online.target
 Wants=network-online.target systemd-networkd-wait-online.service
 
 [Service]
-LimitNOFILE=51200
 Type=simple
 User=root
 Restart=on-failure
