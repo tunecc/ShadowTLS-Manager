@@ -193,7 +193,7 @@ create_service() {
 [Unit]
 Description=Shadow-TLS Server Service
 After=network-online.target
-Wants=network-online.target systemd-networkd-wait-online.service
+Wants=network-online.target
 
 [Service]
 Type=simple
