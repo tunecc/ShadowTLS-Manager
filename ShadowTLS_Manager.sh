@@ -173,18 +173,16 @@ create_service() {
     local fastopen_option=""
     local reply
 
-    echo -e "${Yellow_font_prefix}是否开启泛域名SNI？(开启后客户端伪装域名无需与服务端一致) (y/n, 默认不开启):${Green_font_prefix}"
-    read reply
-    echo -e "${RESET}"
+    # 使用 inline prompt 方式询问是否开启泛域名SNI
+    read -rp "是否开启泛域名SNI？(开启后客户端伪装域名无需与服务端一致) (y/n, 默认不开启): " reply
     if [[ "${reply,,}" == "y" ]]; then
         wildcard_sni_option="--wildcard-sni=authed "
     else
         wildcard_sni_option=""
     fi
 
-    echo -e "${Yellow_font_prefix}是否开启 fastopen？(y/n, 默认不开启):${Green_font_prefix}"
-    read reply
-    echo -e "${RESET}"
+    # 使用 inline prompt 方式询问是否开启 fastopen
+    read -rp "是否开启 fastopen？(y/n, 默认不开启): " reply
     if [[ "${reply,,}" == "y" ]]; then
         fastopen_option="--fastopen "
     else
@@ -194,16 +192,15 @@ create_service() {
     cat > "$SERVICE_FILE" <<EOF
 [Unit]
 Description=Shadow-TLS Server Service
-Documentation=man:sstls-server
 After=network-online.target
-Wants=network-online.target
+Wants=network-online.target systemd-networkd-wait-online.service
 
 [Service]
 Type=simple
 User=root
 Restart=on-failure
 RestartSec=5s
-ExecStart=/usr/local/bin/shadow-tls $fastopen_option--v3 --strict server $wildcard_sni_option--listen [::]:${EXT_PORT} --server 127.0.0.1:${BACKEND_PORT} --tls ${TLS_DOMAIN}:443 --password ${TLS_PASSWORD}
+ExecStart=/usr/local/bin/shadow-tls $fastopen_option --v3 --strict server $wildcard_sni_option --listen [::]:${EXT_PORT} --server 127.0.0.1:${BACKEND_PORT} --tls ${TLS_DOMAIN}:443 --password ${TLS_PASSWORD}
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=shadow-tls
@@ -261,7 +258,7 @@ install_shadowtls() {
     TLS_DOMAIN=$(prompt_valid_domain)
 
     # 密码输入不显示默认提示
-    read -rp "请输入 Shadow-TLS 的密码 (留空则自动生成): " input_password
+    read -rp "请输入 Shadow-TLS 的密码 (回车则自动生成): " input_password
     if [[ -z "$input_password" ]]; then
         TLS_PASSWORD=$(openssl rand -base64 16)
         echo -e "${Cyan_font_prefix}自动生成的 Shadow-TLS 密码为: ${TLS_PASSWORD}${RESET}"
@@ -270,11 +267,16 @@ install_shadowtls() {
     fi
 
     while true; do
-        EXT_PORT=$(prompt_with_default "请输入 Shadow-TLS 外部监听端口 (端口范围为1-65535)" "443")
-        if check_port_in_use "$EXT_PORT"; then
-            print_error "端口 ${EXT_PORT} 已被占用，请更换端口"
+        read -rp "请输入 Shadow-TLS 外部监听端口 (端口范围为1-65535, 回车则随机生成): " EXT_PORT
+        if [[ -z "$EXT_PORT" ]]; then
+            # 生成1024到65535之间的随机端口
+            EXT_PORT=$(( RANDOM % 64512 + 1024 ))
+            echo "随机生成的端口为: ${EXT_PORT}"
+            break
         elif ! [[ "$EXT_PORT" =~ ^[0-9]+$ ]] || [ "$EXT_PORT" -lt 1 ] || [ "$EXT_PORT" -gt 65535 ]; then
             print_error "端口号必须在1到65535之间，且为数字"
+        elif check_port_in_use "$EXT_PORT"; then
+            print_error "端口 ${EXT_PORT} 已被占用，请更换端口"
         else
             break
         fi
