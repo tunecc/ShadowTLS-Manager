@@ -2,25 +2,23 @@
 
 我在LXC的服务器上面使用的时候会出错，在看了[Snell一键部署-由jinqians大佬撰写](https://github.com/jinqians/snell.sh)的脚本后发现是
 ```
-LimitNOFILE=32767
 ExecStartPre=/bin/sh -c "ulimit -n 51200"
+
+Wants=network-online.target systemd-networkd-wait-online.service
+后面的systemd-networkd-wait-online.service
 ```
 
 的问题，下面是GPT的回答
 
-```
-LimitNOFILE=32767
-这条指令属于 systemd 的配置，用于为启动的服务进程设置上限，不论服务内部如何设置，系统将会把它限制在 32767 个打开文件描述符以内。
-
+```txt
 ExecStartPre=/bin/sh -c "ulimit -n 51200"
 这是在正式启动服务前执行的一个预处理命令。它调用 shell 命令 ulimit 来将当前 shell 的最大文件描述符限制设置为 51200。
 注意：这个设置仅对 ExecStartPre 执行的 shell 及其子进程有效，且如果服务本身并没有继承这个调整的话，实际生效的还是 systemd 的 LimitNOFILE 指定的数值。
 
+当设置了 Wants=network-online.target 之后，系统会尝试让相关服务等待网络连接完全建立后再启动。
+systemd-networkd-wait-online.service 会检测网络设备是否配置完成并能够联通，从而确保依赖网络的服务能够在网络环境稳定时启动。
 
 我不设置这个可以吗？
-
-
-如果不设置 LimitNOFILE，则服务进程会使用系统默认的最大文件描述符数，这可能在高并发或需要处理大量网络连接时不足。
 
 如果不设置 ExecStartPre 来调整 ulimit，同样可能导致服务继承默认的文件打开数限制，从而在实际运行中遇到 "too many open files" 的错误。
 
@@ -29,9 +27,7 @@ ExecStartPre=/bin/sh -c "ulimit -n 51200"
 
 还做了一些小修改
 
-
-
-### 一键部署命令
+# 一键部署命令
 ```bash
 wget -O ShadowTLS_Manager.sh --no-check-certificate https://raw.githubusercontent.com/tunecc/ShadowTLS-Manager/refs/heads/main/ShadowTLS_Manager.sh && chmod +x ShadowTLS_Manager.sh && ./ShadowTLS_Manager.sh
 ```
