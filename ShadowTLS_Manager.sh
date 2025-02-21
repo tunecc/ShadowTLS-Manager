@@ -174,7 +174,7 @@ create_service() {
     local reply
 
     # 使用 inline prompt 方式询问是否开启泛域名SNI
-    read -rp "是否开启泛域名SNI？(开启后客户端伪装域名无需与服务端一致) (y/n, 默认不开启): " reply
+    read -rp "是否开启泛域名SNI？(开启后客户端伪装域名无需与服务端一致) (y/n, 回车不开启): " reply
     if [[ "${reply,,}" == "y" ]]; then
         wildcard_sni_option="--wildcard-sni=authed "
     else
@@ -182,7 +182,7 @@ create_service() {
     fi
 
     # 使用 inline prompt 方式询问是否开启 fastopen
-    read -rp "是否开启 fastopen？(y/n, 默认不开启): " reply
+    read -rp "是否开启 fastopen？(y/n, 回车不开启): " reply
     if [[ "${reply,,}" == "y" ]]; then
         fastopen_option="--fastopen "
     else
