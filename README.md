@@ -19,6 +19,9 @@ ExecStartPre=/bin/sh -c "ulimit -n 51200"
 总结来说，如果你的服务并不会创建大量并发连接或者文件操作，且系统默认的文件描述符数足够使用，那么可以不设置。但如果预期负载较高，建议适当提高限制，以避免潜在的资源不足问题。
 ```
 
+按照[这个issue](https://github.com/ihciah/shadow-tls/issues/109)把内核版本高导致的cpu占用100%的代码添加到脚本里面
+`Environment=MONOIO_FORCE_LEGACY_DRIVER=1`
+
 还做了一些小修改
 
 # 一键部署命令
