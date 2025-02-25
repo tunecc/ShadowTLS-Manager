@@ -22,6 +22,18 @@ ExecStartPre=/bin/sh -c "ulimit -n 51200"
 按照[这个issue](https://github.com/ihciah/shadow-tls/issues/109)把内核版本高导致的cpu占用100%的代码添加到脚本里面
 `Environment=MONOIO_FORCE_LEGACY_DRIVER=1`
 
+```bash
+/etc/systemd/system/shadow-tls.service
+
+Environment=MONOIO_FORCE_LEGACY_DRIVER=1
+
+systemctl daemon-reload
+
+systemctl restart shadow-tls.service
+```
+
+
+
 还做了一些小修改
 
 # 一键部署命令
