@@ -1,3 +1,17 @@
+# 一键部署命令
+
+LXC系统
+
+```bash
+wget -O lstls.sh --no-check-certificate https://raw.githubusercontent.com/tunecc/ShadowTLS-Manager/refs/heads/main/lstls.sh && chmod +x lstls.sh && ./lstls.sh
+```
+
+KVM高内核
+
+```bash
+wget -O hstls.sh --no-check-certificate https://raw.githubusercontent.com/tunecc/ShadowTLS-Manager/refs/heads/main/hstls.sh && chmod +x hstls.sh && ./hstls.sh
+```
+
 # 修改了什么
 
 我在LXC的服务器上面使用的时候会出错，在看了[Snell一键部署-由jinqians大佬撰写](https://github.com/jinqians/snell.sh)的脚本后发现是
@@ -34,19 +48,7 @@ systemctl restart shadow-tls.service
 
 
 
+加入了定时重启
+
 还做了一些小修改
-
-# 一键部署命令
-
-LXC系统
-
-```bash
-wget -O ShadowTLS_Manager.sh --no-check-certificate https://raw.githubusercontent.com/tunecc/ShadowTLS-Manager/refs/heads/main/ShadowTLS_Manager.sh && chmod +x ShadowTLS_Manager.sh && ./lxc_stls.sh
-```
-
-KVM高内核
-
-```bash
-wget -O ShadowTLS_Manager.sh --no-check-certificate https://raw.githubusercontent.com/tunecc/ShadowTLS-Manager/refs/heads/main/ShadowTLS_Manager.sh && chmod +x ShadowTLS_Manager.sh && ./gstls.sh
-```
 
