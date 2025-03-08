@@ -37,6 +37,16 @@ systemctl restart shadow-tls.service
 还做了一些小修改
 
 # 一键部署命令
+
+LXC系统
+
 ```bash
-wget -O ShadowTLS_Manager.sh --no-check-certificate https://raw.githubusercontent.com/tunecc/ShadowTLS-Manager/refs/heads/main/ShadowTLS_Manager.sh && chmod +x ShadowTLS_Manager.sh && ./ShadowTLS_Manager.sh
+wget -O ShadowTLS_Manager.sh --no-check-certificate https://raw.githubusercontent.com/tunecc/ShadowTLS-Manager/refs/heads/main/ShadowTLS_Manager.sh && chmod +x ShadowTLS_Manager.sh && ./lxc_stls.sh
 ```
+
+KVM高内核
+
+```bash
+wget -O ShadowTLS_Manager.sh --no-check-certificate https://raw.githubusercontent.com/tunecc/ShadowTLS-Manager/refs/heads/main/ShadowTLS_Manager.sh && chmod +x ShadowTLS_Manager.sh && ./gstls.sh
+```
+
