@@ -23,7 +23,7 @@ wget -O hstls.sh --no-check-certificate https://raw.githubusercontent.com/tunecc
 
 新脚本会自动根据系统架构来判断是否添加 ` ExecStartPre=/bin/sh -c "ulimit -n 51200"`
 
-`Environment=MONOIO_FORCE_LEGACY_DRIVER=1` ，这个判断还未添加
+`Environment=MONOIO_FORCE_LEGACY_DRIVER=1` ，这个判断还未添加，在还未搞清楚内核要多低才不会导致 CPU 占用 100% 时，不会添加
 
 我在LXC的服务器上面使用的时候会出错，在看了[Snell一键部署-由jinqians大佬撰写](https://github.com/jinqians/snell.sh)的脚本后发现是
 
