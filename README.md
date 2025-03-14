@@ -1,12 +1,19 @@
 # 使用
+通用（最新版会自动根据系统架构来判断是否添加 ExecStartPre=/bin/sh -c "ulimit -n 51200" ）
 
-LXC系统
+```bash
+wget -O stls.sh --no-check-certificate https://raw.githubusercontent.com/tunecc/ShadowTLS-Manager/refs/heads/main/stls.sh && chmod +x lstls.sh && ./stls.sh
+```
+
+
+
+~~LXC系统~~
 
 ```bash
 wget -O lstls.sh --no-check-certificate https://raw.githubusercontent.com/tunecc/ShadowTLS-Manager/refs/heads/main/lstls.sh && chmod +x lstls.sh && ./lstls.sh
 ```
 
-KVM高内核
+~~KVM高内核~~
 
 ```bash
 wget -O hstls.sh --no-check-certificate https://raw.githubusercontent.com/tunecc/ShadowTLS-Manager/refs/heads/main/hstls.sh && chmod +x hstls.sh && ./hstls.sh
@@ -14,7 +21,12 @@ wget -O hstls.sh --no-check-certificate https://raw.githubusercontent.com/tunecc
 
 # 修改了什么
 
+新脚本会自动根据系统架构来判断是否添加 ` ExecStartPre=/bin/sh -c "ulimit -n 51200"`
+
+`Environment=MONOIO_FORCE_LEGACY_DRIVER=1` ，这个判断还未添加
+
 我在LXC的服务器上面使用的时候会出错，在看了[Snell一键部署-由jinqians大佬撰写](https://github.com/jinqians/snell.sh)的脚本后发现是
+
 ```
 ExecStartPre=/bin/sh -c "ulimit -n 51200"
 ```
