@@ -2,7 +2,7 @@
 通用（最新版会自动根据系统架构来判断是否添加 ExecStartPre=/bin/sh -c "ulimit -n 51200" ）
 
 ```bash
-wget -O stls.sh --no-check-certificate https://raw.githubusercontent.com/tunecc/ShadowTLS-Manager/refs/heads/main/stls.sh && chmod +x lstls.sh && ./stls.sh
+wget -O stls.sh --no-check-certificate https://raw.githubusercontent.com/tunecc/ShadowTLS-Manager/refs/heads/main/stls.sh && chmod +x stls.sh && ./stls.sh
 ```
 
 
